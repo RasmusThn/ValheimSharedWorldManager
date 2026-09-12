@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <AssemblyName>ValheimSharedWorldManager</AssemblyName>
+    <RootNamespace>ValheimSharedWorldManager</RootNamespace>
+    <Version>2.0.0</Version>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <FileVersion>2.0.0.0</FileVersion>
+    <Product>Valheim Shared World Manager</Product>
+    <Description>Safely share and take turns hosting Valheim worlds through OneDrive.</Description>
+  </PropertyGroup>
+	  <ItemGroup>
+		  <EmbeddedResource Include="app.ico" />
+	  </ItemGroup>
+</Project>
