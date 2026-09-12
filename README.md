@@ -49,6 +49,21 @@ FIRST SETUP
 -----------
 The first time the app starts it opens a setup window.
 
+Before using the manager, you need an existing Valheim world.
+
+If you do not have a world yet:
+
+1. Start Valheim normally.
+2. Create a new world.
+3. Make sure the world is saved locally, not only in Steam Cloud.
+4. Close Valheim.
+5. Start Valheim Shared World Manager.
+6. Select the local world and use Upload local world to create the initial shared copy.
+
+The manager does not create a new Valheim world itself. It manages, backs up and synchronizes an existing local world.
+
+If your existing world is currently stored only in Steam Cloud, move/save it as a local world in Valheim first so it is available in the local worlds folder.
+
 LOCAL VALHEIM FOLDER
 Usually:
 
@@ -73,13 +88,13 @@ Recommended structure:
 Valheim2.0\
 |
 +-- worlds_local\
-|   +-- Larssons\
+|   +-- MySharedWorld\
 |
 +-- Backups\
-|   +-- Larssons\
+|   +-- MySharedWorld\
 |
 +-- Sessions\
-    +-- Larssons.json
+    +-- MySharedWorld.json
 
 The app no longer uses .valheim-sync for backup history or session information.
 
@@ -105,7 +120,7 @@ SHARED_ROOT\Backups\WORLDNAME\
 
 Example:
 
-C:\Users\Rasmus\OneDrive\Valheim2.0\Backups\Larssons\
+C:\Users\YOURNAME\OneDrive\ValheimShared\Backups\MySharedWorld\
 
 Typical backups:
 
@@ -153,8 +168,6 @@ For new backups it shows:
 
 Older backups are supported as Legacy backup.
 
-The old SyncState / SyncStateService system is no longer required for Last Publish history.
-
 SERVER SESSION INFORMATION
 --------------------------
 Server information is stored in:
@@ -163,7 +176,7 @@ SHARED_ROOT\Sessions\WORLDNAME.json
 
 Example:
 
-C:\Users\Rasmus\OneDrive\Valheim2.0\Sessions\Larssons.json
+C:\Users\YOURNAME\OneDrive\ValheimShared\Sessions\MySharedWorld.json
 
 It can contain:
 - World
@@ -216,31 +229,58 @@ IMPORTANT RULES
 - Do not manually overwrite shared files if the app reports a publishing conflict.
 - The player who only joins does not need to copy the shared world locally before joining.
 
-BUILD / DEVELOPMENT
--------------------
-Open ValheimSharedWorldManager.sln in Visual Studio.
+DOWNLOAD / INSTALL
+------------------
+The easiest way to use the app is to download the latest ready-to-use build from the GitHub Releases page.
 
-During current development the project can target:
+1. Open the repository on GitHub.
+2. Click Releases.
+3. Open the latest release.
+4. Download the attached ValheimSharedWorldManager.zip.
+5. Extract the ZIP.
+6. Run ValheimSharedWorldManager.exe.
 
-net7.0-windows
+The published app is self-contained, so players using the finished EXE do not need to install .NET separately.
 
-This allows development with .NET SDK 7.0.400.
 
-To create a standalone EXE, publish for Windows x64 as:
-- Release
-- win-x64
-- Self-contained
-- Single file
+BUILD IT YOURSELF
+-----------------
+If you prefer to build the app yourself:
 
-If BUILD_RELEASE.cmd is configured for the current TargetFramework, run:
+1. Click Code -> Download ZIP on GitHub.
+2. Extract the repository.
+3. Make sure the .NET 8 SDK is installed.
+4. Run:
 
 BUILD_RELEASE.cmd
 
-The published executable is normally created at:
+The finished standalone application is created in:
 
 publish\ValheimSharedWorldManager.exe
 
-The self-contained EXE can be sent to the other player without requiring PowerShell or a separate .NET runtime installation.
+If .NET 8 SDK is not installed, download it from Microsoft's official .NET 8 download page:
+
+https://dotnet.microsoft.com/download/dotnet/8.0
+
+The project targets:
+
+net8.0-windows
+
+
+GITHUB RELEASES
+---------------
+Ready-to-use builds should be uploaded to GitHub Releases.
+
+A release can contain:
+
+ValheimSharedWorldManager.zip
+
+The ZIP should contain the published application, for example:
+
+ValheimSharedWorldManager.exe
+
+Users who only want to run the app should download the latest release instead of downloading the source code.
+
 
 CURRENT UI HIGHLIGHTS
 ---------------------
