@@ -41,6 +41,7 @@ public sealed class MainForm : Form
     private readonly Button _btnSettings = AppTheme.SecondaryButton("Setup / folders");
     private readonly Button _btnAdvanced = AppTheme.SecondaryButton("Advanced");
     private readonly Button _btnForceUnlock = AppTheme.SecondaryButton("Force unlock");
+    private readonly Button _btnHelp = AppTheme.SecondaryButton("Help");
 
     private readonly Panel _advancedPanel = new();
     private readonly Panel _historyPanel = new();
@@ -167,10 +168,11 @@ public sealed class MainForm : Form
         {
             Dock = DockStyle.Top,
             AutoSize = true,
-            ColumnCount = 2,
+            ColumnCount = 3,
             Margin = new Padding(0, 0, 0, 18)
         };
         header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
 
         var text = new TableLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, RowCount = 2, ColumnCount = 1 };
@@ -187,11 +189,24 @@ public sealed class MainForm : Form
         text.Controls.Add(_lblSubBanner, 0, 1);
         header.Controls.Add(text, 0, 0);
 
+        _btnHelp.Width = 90;
+        _btnHelp.Height = 36;
+        _btnHelp.Margin = new Padding(8, 0, 0, 0);
+        _btnHelp.Click += (_, _) => OpenHelp();
+
+        header.Controls.Add(_btnHelp, 1, 0);
+
         _btnSettings.Width = 145;
         _btnSettings.Height = 36;
         _btnSettings.Click += (_, _) => OpenSetupWizard();
-        header.Controls.Add(_btnSettings, 1, 0);
+        header.Controls.Add(_btnSettings, 2, 0);
         return header;
+    }
+
+    private void OpenHelp()
+    {
+        using var dialog = new HelpForm();
+        dialog.ShowDialog(this);
     }
 
     private Control BuildWorldSelector()
@@ -265,10 +280,7 @@ public sealed class MainForm : Form
         _btnJoin.Margin = new Padding(0, 8, 0, 0);
         _btnJoin.Visible = false;
 
-        _btnJoin.Click += (_, _) =>
-        {
-            _valheimService.Start();
-        };
+        _btnJoin.Click += (_, _) => JoinWorld();
 
         table.Controls.Add(_btnJoin, 2, 1);
 
@@ -1385,21 +1397,28 @@ public sealed class MainForm : Form
 
             if (_chkAutoLaunch.Checked)
             {
-                SetSession("Starting Valheim...");
+                SetSession(
+                    $"Valheim is starting - select '{world}', enable Start Server and Crossplay.");
+
                 _valheimService.Start();
                 _log.Info("Started Valheim through Steam.");
 
-                MessageBox.Show(this, $"Valheim is starting.\n\nSelect: {world}\nEnable 'Start Server'.\nEnable Crossplay if you want a Join Code.\n\nKeep this manager open while hosting.", "Ready to host", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                await _valheimService.WaitForStartAsync(TimeSpan.FromMinutes(2), CancellationToken.None);
+                await _valheimService.WaitForStartAsync(
+                    TimeSpan.FromMinutes(2),
+                    CancellationToken.None);
             }
             else
             {
-                MessageBox.Show(this, $"The latest copy of '{world}' is ready locally.\n\nStart Valheim now and host this world. Keep this manager open.", "Start Valheim", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                await _valheimService.WaitForStartAsync(TimeSpan.FromMinutes(5), CancellationToken.None);
+                SetSession(
+                    $"Start Valheim manually and host '{world}'. Waiting for Valheim to start...");
+
+                await _valheimService.WaitForStartAsync(
+                    TimeSpan.FromMinutes(5),
+                    CancellationToken.None);
             }
 
             SetSession($"HOSTING: {world} - waiting for Valheim to close...");
-            _log.Info("Valheim detected. Waiting for it to close.");
+            _log.Info("Valheim detected. Waiting for it to close..");
             await _valheimService.WaitForExitAsync(CancellationToken.None);
             await Task.Delay(4000);
 
@@ -1431,7 +1450,6 @@ public sealed class MainForm : Form
 
             SetSession("WORLD PUBLISHED - wait for OneDrive to say 'Up to date', then release the lock.");
 
-            MessageBox.Show(this, "The updated world has been copied to OneDrive.\n\nWAIT until OneDrive says 'Up to date'. Then click 'Release host lock' in Advanced.\n\nDo not let the next person host before sync is complete.", "Almost done", MessageBoxButtons.OK, MessageBoxIcon.Information);        
         }
         catch (Exception ex)
         {
@@ -1756,6 +1774,21 @@ public sealed class MainForm : Form
             _hostSessionService.Read(
                 _settings.SharedWorldRoot,
                 world);
+
+        if (session == null)
+        {
+            _log.Error(
+                $"No session info could be read for '{world}'. " +
+                $"Shared root: {_settings.SharedWorldRoot}");
+        }
+        else
+        {
+            _log.Info(
+                $"Session loaded for '{world}': " +
+                $"JoinCode='{session.JoinCode}', " +
+                $"Password='{session.Password}', " +
+                $"Host={session.HostMachine}/{session.HostUser}");
+        }
 
         _lblSessionHost.Text =
             $"Hosted by {hostLock.Machine} / {hostLock.User}";
