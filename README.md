@@ -3,10 +3,13 @@ VALHEIM SHARED WORLD MANAGER
 
 A Windows app for sharing a Valheim world through OneDrive and safely taking turns hosting it.
 
-NO POWERSHELL REQUIRED
-----------------------
-The published app is a normal Windows .exe.
-PowerShell execution policies do not matter for the finished app.
+## Download
+
+**[Download the latest release](https://github.com/RasmusThn/ValheimSharedWorldManager/releases/latest)**
+
+Download the latest ZIP, extract it, and run `ValheimSharedWorldManager.exe`.
+
+No installation is required.
 
 MAIN WORKFLOW
 -------------
