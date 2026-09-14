@@ -651,7 +651,11 @@ public sealed class MainForm : Form
                 _settings.SharedWorldRoot = AppPaths.GetSuggestedSharedWorldRoot();
 
             if (!_settings.SetupCompleted || string.IsNullOrWhiteSpace(_settings.SharedWorldRoot))
+            {
                 OpenSetupWizard(firstRun: true);
+            }
+
+            TryRestoreOwnedLock();
 
             _chkBackups.Checked = _settings.CreateBackups;
             _chkAutoLaunch.Checked = _settings.LaunchValheimAutomatically;
@@ -669,6 +673,56 @@ public sealed class MainForm : Form
         {
             _loadingSettings = false;
         }
+    }
+
+    private void TryRestoreOwnedLock()
+    {
+        if (string.IsNullOrWhiteSpace(_settings.ActiveHostWorld) ||
+            string.IsNullOrWhiteSpace(_settings.ActiveHostToken))
+        {
+            return;
+        }
+
+        var hostLock = _lockService.ReadLock(
+            _settings.SharedWorldRoot,
+            _settings.ActiveHostWorld);
+
+        // Lockfilen finns inte längre.
+        if (hostLock == null)
+        {
+            ClearSavedHostState();
+            return;
+        }
+
+        // Lockfilen finns, men token matchar inte.
+        // Då ägs locken av någon annan session.
+        if (!string.Equals(
+                hostLock.Token,
+                _settings.ActiveHostToken,
+                StringComparison.Ordinal))
+        {
+            ClearSavedHostState();
+            return;
+        }
+
+        // Samma token = detta är vårt gamla lock.
+        _activeLock = hostLock;
+        _waitingForRelease = _settings.WaitingForRelease;
+
+        _log.Info(
+            $"Restored owned host lock for '{hostLock.World}'. " +
+            $"WaitingForRelease={_waitingForRelease}");
+    }
+
+    private void ClearSavedHostState()
+    {
+        _settings.ActiveHostWorld = null;
+        _settings.ActiveHostToken = null;
+        _settings.WaitingForRelease = false;
+
+        _waitingForRelease = false;
+
+        _settingsService.Save(_settings);
     }
 
     private void ToggleHistory()
@@ -1160,18 +1214,27 @@ public sealed class MainForm : Form
         else if (isOurLock)
         {
             _cardLock.Set(
-                "HOST LOCK",
-                "You are hosting",
-                $"{hostLock.Machine} / {hostLock.User}",
-                AppTheme.Accent);
+               "HOST LOCK",
+               _waitingForRelease
+                   ? "Ready to release"
+                   : "You are hosting",
+               $"{hostLock.Machine} / {hostLock.User}",
+               AppTheme.Accent);
 
             _btnHost.Visible = true;
-            _btnHost.Text = "HOSTING...";
-            _btnHost.Enabled = false;
-
             _btnJoin.Visible = false;
-
             _chkAutoLaunch.Visible = false;
+
+            if (_waitingForRelease)
+            {
+                _btnHost.Text = "RELEASE HOST LOCK";
+                _btnHost.Enabled = true;
+            }
+            else
+            {
+                _btnHost.Text = "HOSTING...";
+                _btnHost.Enabled = false;
+            }
         }
         else
         {
@@ -1369,6 +1432,7 @@ public sealed class MainForm : Form
         SaveSettings();
         // vi börjar en helt ny host-session
         _waitingForRelease = false;
+        _settings.WaitingForRelease = false;
 
         SetBusy(true, "Preparing host session...");
 
@@ -1376,6 +1440,13 @@ public sealed class MainForm : Form
         try
         {
             _activeLock = _lockService.CreateLock(sharedRoot, world);
+
+            _settings.ActiveHostWorld = world;
+            _settings.ActiveHostToken = _activeLock.Token;
+            _settings.WaitingForRelease = false;
+
+            _settingsService.Save(_settings);
+
             _log.Info($"Host lock created for '{world}' as {_activeLock.Machine}/{_activeLock.User}.");
             RefreshStatusCards();
 
@@ -1438,7 +1509,10 @@ public sealed class MainForm : Form
 
             // HÄR börjar vänteläget efter publish
             SetBusy(false, "Waiting for OneDrive sync confirmation");
+
             _waitingForRelease = true;
+            _settings.WaitingForRelease = true;
+            _settingsService.Save(_settings);
 
             _btnHost.Visible = true;
             _btnHost.Enabled = true;
@@ -1448,7 +1522,8 @@ public sealed class MainForm : Form
             _btnPull.Enabled = false;
             _btnForceUnlock.Enabled = false;
 
-            SetSession("WORLD PUBLISHED - wait for OneDrive to say 'Up to date', then release the lock.");
+            SetSession(
+                "WORLD PUBLISHED - wait for OneDrive to say 'Up to date', then release the lock.");
 
         }
         catch (Exception ex)
@@ -1477,8 +1552,14 @@ public sealed class MainForm : Form
 
             _activeLock = null;
             _sharedFingerprintAtHostStart = null;
-
             _waitingForRelease = false;
+
+            // Rensa sparad host-state
+            _settings.ActiveHostWorld = null;
+            _settings.ActiveHostToken = null;
+            _settings.WaitingForRelease = false;
+            _settingsService.Save(_settings);
+
             _btnHost.Text = "HOST WORLD";
             _btnHost.Enabled = true;
             _btnHost.Visible = true;
@@ -1512,9 +1593,20 @@ public sealed class MainForm : Form
         try
         {
             _lockService.ReleaseLock(_settings.SharedWorldRoot, world, existing.Token, force: true);
+
             _activeLock = null;
+            _sharedFingerprintAtHostStart = null;
+            _waitingForRelease = false;
+
+            _settings.ActiveHostWorld = null;
+            _settings.ActiveHostToken = null;
+            _settings.WaitingForRelease = false;
+            _settingsService.Save(_settings);
+
             _btnRelease.Enabled = false;
+
             EnableNormalActions();
+
             _log.Info($"Force-unlocked '{world}'.");
             RefreshStatusCards();
         }
