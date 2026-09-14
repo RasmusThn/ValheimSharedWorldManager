@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Reflection;
 using System.Text.Json;
 using ValheimSharedWorldManager.Controls;
 using ValheimSharedWorldManager.Models;
@@ -38,7 +39,7 @@ public sealed class MainForm : Form
     private readonly Button _btnPull = AppTheme.SecondaryButton("Download shared world");
     private readonly Button _btnRelease = AppTheme.SecondaryButton("Release host lock");
     private readonly Button _btnRefresh = AppTheme.SecondaryButton("Refresh");
-    private readonly Button _btnSettings = AppTheme.SecondaryButton("Setup / folders");
+    private readonly Button _btnSettings = AppTheme.SecondaryButton("Setup");
     private readonly Button _btnAdvanced = AppTheme.SecondaryButton("Advanced");
     private readonly Button _btnForceUnlock = AppTheme.SecondaryButton("Force unlock");
     private readonly Button _btnHelp = AppTheme.SecondaryButton("Help");
@@ -175,25 +176,48 @@ public sealed class MainForm : Form
         header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
 
-        var text = new TableLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, RowCount = 2, ColumnCount = 1 };
+        var text = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            RowCount = 3,
+            ColumnCount = 1
+        };
+
         _lblBanner.Text = "Valheim Shared World Manager";
         _lblBanner.AutoSize = true;
         _lblBanner.Font = new Font("Segoe UI Semibold", 22F);
         _lblBanner.ForeColor = AppTheme.Text;
+
         text.Controls.Add(_lblBanner, 0, 0);
 
-        _lblSubBanner.Text = "Share a world through OneDrive and safely take turns hosting.";
+        _lblSubBanner.Text =
+            "Share a world through OneDrive and safely take turns hosting.";
+
         _lblSubBanner.AutoSize = true;
         _lblSubBanner.ForeColor = AppTheme.MutedText;
         _lblSubBanner.Margin = new Padding(1, 3, 0, 0);
+
         text.Controls.Add(_lblSubBanner, 0, 1);
+
+        var versionLabel = new Label
+        {
+            Text = $"Version {GetAppVersion().TrimStart('v')}",
+            AutoSize = true,
+            ForeColor = AppTheme.MutedText,
+            Font = new Font("Segoe UI", 8F),
+            Margin = new Padding(1, 4, 0, 0)
+        };
+
+        text.Controls.Add(versionLabel, 0, 2);
+
+        // Viktigt: row 0, inte row 1
         header.Controls.Add(text, 0, 0);
 
         _btnHelp.Width = 90;
         _btnHelp.Height = 36;
         _btnHelp.Margin = new Padding(8, 0, 0, 0);
         _btnHelp.Click += (_, _) => OpenHelp();
-
         header.Controls.Add(_btnHelp, 1, 0);
 
         _btnSettings.Width = 145;
@@ -1085,19 +1109,25 @@ public sealed class MainForm : Form
 
     private void OpenSetupWizard(bool firstRun = false)
     {
-        using var dialog = new SetupWizardForm(_settings);
+        using var dialog = new SetupWizardForm(
+            _settings,
+            showModeSelector: !firstRun);
+
         if (dialog.ShowDialog(this) == DialogResult.OK)
         {
             _settings = dialog.Result;
             _settingsService.Save(_settings);
+
             UpdatePathLabels();
             RefreshWorlds();
             RefreshStatusCards();
+
             _log.Info("Folder setup updated.");
         }
         else if (firstRun)
         {
-            _log.Info("First-run setup was skipped. Use 'Setup / folders' when ready.");
+            _log.Info(
+                "First-run setup was skipped. Use 'Setup / folders' when ready.");
         }
     }
 
@@ -1967,5 +1997,13 @@ public sealed class MainForm : Form
             var result = MessageBox.Show(this, "An operation is still running. Closing may interrupt it. Close anyway?", "Operation in progress", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
             if (result != DialogResult.Yes) e.Cancel = true;
         }
+    }
+    private static string GetAppVersion()
+    {
+        var version = typeof(Program).Assembly.GetName().Version;
+
+        return version == null
+            ? ""
+            : $"Version {version.Major}.{version.Minor}.{version.Build}";
     }
 }

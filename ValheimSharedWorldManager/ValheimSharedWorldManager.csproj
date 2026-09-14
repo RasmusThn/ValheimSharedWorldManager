@@ -9,9 +9,7 @@
     <ApplicationIcon>app.ico</ApplicationIcon>
     <AssemblyName>ValheimSharedWorldManager</AssemblyName>
     <RootNamespace>ValheimSharedWorldManager</RootNamespace>
-    <Version>2.0.0</Version>
-    <AssemblyVersion>2.0.0.0</AssemblyVersion>
-    <FileVersion>2.0.0.0</FileVersion>
+    <Version>1.1.0</Version>
     <Product>Valheim Shared World Manager</Product>
     <Description>Safely share and take turns hosting Valheim worlds through OneDrive.</Description>
   </PropertyGroup>
